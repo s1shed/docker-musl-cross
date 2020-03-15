@@ -50,5 +50,5 @@ LABEL org.label-schema.description="Container with a musl-cross toolchain instal
 LABEL org.label-schema.vcs-url="https://github.com/s1shed/docker-musl-cross"
 LABEL org.label-schema.docker.cmd="docker run --rm -it -v $(pwd):/output eshornock/musl-cross:wheezy"
 
-ENV PATH=/opt/cross/x86_64-linux-musl/bin:/opt/cross/i486-linux-musl:$PATH
+ENV PATH=/opt/cross/x86_64-linux-musl/bin:/opt/cross/i486-linux-musl/bin:$PATH
 CMD ["bash"]
