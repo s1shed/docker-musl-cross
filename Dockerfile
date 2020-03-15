@@ -1,35 +1,54 @@
-FROM debian:jessie
-MAINTAINER Andrew Dunham <andrew@du.nham.ca>
+ARG IMAGE=eshornock/debian:wheezy
+FROM $IMAGE AS base
+LABEL maintainer Edward Shornock <ed.shornock@gmail.com>
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install build tools
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get upgrade -yy && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -yy \
+RUN set -ex &&              \
+    apt-get update &&       \
+    apt-get upgrade -y &&   \
+    apt-get install -y      \
+    --no-install-recommends \
+        autoconf            \
         automake            \
         bison               \
-        build-essential     \
+        ca-certificates     \
         curl                \
+        fakeroot            \
         file                \
         flex                \
         git                 \
         libtool             \
+        make                \
         pkg-config          \
         python              \
         texinfo             \
-        vim                 \
+        vim-nox             \
         wget
 
+FROM base AS build
 # Install musl-cross
-RUN mkdir /build &&                                                 \
+RUN set -ex &&                                                      \
+    apt-get update &&                                               \
+    apt-get install -y build-essential &&                           \
+    mkdir /build &&                                                 \
     cd /build &&                                                    \
-    git clone https://github.com/GregorR/musl-cross.git &&          \
+    git clone https://github.com/s1shed/musl-cross &&               \
     cd musl-cross &&                                                \
     echo 'GCC_BUILTIN_PREREQS=yes' >> config.sh &&                  \
-    sed -i -e "s/^MUSL_VERSION=.*\$/MUSL_VERSION=1.1.12/" defs.sh &&  \
-    ./build.sh &&                                                   \
-    cd / &&                                                         \
-    apt-get clean &&                                                \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /build
+    ./build.sh
 
-ENV PATH $PATH:/opt/cross/x86_64-linux-musl/bin
-CMD /bin/bash
+FROM base
+COPY --from=build /opt /opt
+ARG BUILD_DATE=undefined
+ENV BUILD_DATE=$BUILD_DATE
+LABEL org.label-schema.build-date=$BUILD_DATE
+LABEL org.label-schema.schema-version="1.0"
+LABEL org.label-schema.name="eshornock/musl-cross"
+LABEL org.label-schema.description="Container with a musl-cross toolchain installed"
+LABEL org.label-schema.vcs-url="https://github.com/s1shed/docker-musl-cross"
+LABEL org.label-schema.docker.cmd="docker run --rm -it -v $(pwd):/output eshornock/musl-cross:wheezy"
+
+ENV PATH=/opt/cross/x86_64-linux-musl/bin:/opt/cross/i486-linux-musl:$PATH
+CMD ["bash"]
